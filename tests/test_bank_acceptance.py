@@ -1,22 +1,28 @@
-from src.bank import Bank
+import datetime
 import io
 import sys
+import unittest
 from unittest.mock import Mock
-import datetime
+
+from src.bank import Bank
 
 
-class TestBankAcceptance:
-    def test_print_full_statement(self):
+class TestBankAcceptance(unittest.TestCase):
+
+    def test_should_print_full_statement_refactored(self):
         clock = Mock()
         bank = Bank(clock)
         capture_output = io.StringIO()
         sys.stdout = capture_output
 
-        clock._date = datetime.datetime(2012, 1, 10)
+        clock.get_date.side_effect = [
+            datetime.datetime(2012, 1, 10),
+            datetime.datetime(2012, 1, 13),
+            datetime.datetime(2012, 1, 14)
+        ]
+
         bank.deposit(1000)
-        clock._date = datetime.datetime(2012, 1, 13)
         bank.deposit(2000)
-        clock._date = datetime.datetime(2012, 1, 14)
         bank.withdraw(500)
         bank.print_statement()
 
@@ -27,4 +33,4 @@ class TestBankAcceptance:
 """
 
         sys.stdout = sys.__stdout__
-        assert capture_output.getvalue() == expected_output
+        self.assertEqual(capture_output.getvalue(), expected_output)

@@ -1,50 +1,72 @@
 import datetime
+from dataclasses import dataclass
 
 
 class Clock:
-    def __init__(self):
-        # set current date
-        self._d = datetime.datetime.now()
+    def get_date(self) -> datetime.datetime:
+        return datetime.datetime.now()
 
-    def set_date(self, d):
-        self._d = d
-    def get_date(self, d):
-        return self._d
+
+@dataclass
+class Transaction:
+    date: datetime.datetime
+    amount: int
+    balance: int
+
+
+class TransactionRepository:
+    def __init__(self):
+        self.transactions: list[Transaction] = []
+        self.current_balance: int = 0
+
+    def add_transaction(self, date: datetime.datetime, amount: int):
+        self.transactions.append(
+            Transaction(
+                date=date,
+                amount=amount,
+                balance=self.current_balance + amount
+            )
+        )
+        self.update_current_balance(amount)
+
+    def update_current_balance(self, amount: int):
+        self.current_balance = self.current_balance + amount
+
+    def get_transactions(self) -> list[Transaction]:
+        return self.transactions
+
+    def get_sorted_from_recent_to_oldest(self) -> list[Transaction]:
+        return sorted(self.transactions, key=lambda x: x.date, reverse=True)
+
+    def get_length(self) -> int:
+        return len(self.transactions)
+
+
+class Printer:
+    @staticmethod
+    def print_formatted_transactions(transactions: list[Transaction]):
+        print("Date       || Amount || Balance")
+        for transaction in transactions:
+            print(f'{transaction.date.strftime("%d/%m/%Y")} || {transaction.amount} || {transaction.balance}')
 
 
 class Bank:
-    def __init__(self, clock):
-        # transactions tuple: date - amount - balance
-        self.transaction = []
+    def __init__(self, clock: Clock):
+        self.transactionRepository = TransactionRepository()
         self.clock = clock
 
-    def deposit(self, amount):
-        self.clock.set_date(datetime.datetime.now())
-        previous_balance = 0
-        # if list is empty you cannot get previous balance
-        if len(self.transaction) > 0:
-            previous_balance = self.transaction[-1][2]
+    def deposit(self, amount: int):
+        self.make_new_transaction(amount)
 
-        t = self.clock._date
-        new_d = t.strftime("%d/%m/%Y")
-        self.transaction.append([new_d, amount, previous_balance + amount])
+    def withdraw(self, amount: int):
+        self.make_new_transaction(-amount)
 
-    def withdraw(self, amount):
-        self.clock.set_date(datetime.datetime.now())
-        b = 0
-        # if list is empty you cannot get previous balance
-        if len(self.transaction) > 0:
-            b = self.transaction[-1][2]
-
-        t = self.clock._date
-        new_d = t.strftime("%d/%m/%Y")
-        self.transaction.append([new_d, -amount, b - amount])
+    def make_new_transaction(self, amount: int):
+        self.transactionRepository.add_transaction(
+            date=self.clock.get_date(),
+            amount=amount
+        )
 
     def print_statement(self):
-        print("Date       || Amount || Balance")
-        for i in self.transaction[::-1]:
-            print(f"{i[0]} || {i[1]} || {i[2]}")
-
-    def get_date(self):
-        # not used
-        return datetime.datetime.now()
+        sorted_transactions = self.transactionRepository.get_sorted_from_recent_to_oldest()
+        Printer.print_formatted_transactions(sorted_transactions)
